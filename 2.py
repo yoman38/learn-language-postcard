@@ -160,16 +160,22 @@ def overlay_text_on_postcard(image_path, text, target_language):
     except Exception:
         font = ImageFont.load_default()
 
+    # Function to measure text size safely
+    def measure_text(font_obj, text):
+        try:
+            return font_obj.getsize(text)
+        except AttributeError:
+            # Fallback to getbbox if getsize is not available
+            bbox = font_obj.getbbox(text)
+            return (bbox[2] - bbox[0], bbox[3] - bbox[1])
+
     # If using a TrueType font, adjust the font size so that the rendered character "A" is close to target_char_height.
     if font_path is not None:
-        # Measure the height of a reference character
         ref_char = "A"
-        measured_width, measured_height = font.getsize(ref_char)
+        measured_width, measured_height = measure_text(font, ref_char)
         # Avoid division by zero
         if measured_height > 0:
-            # Calculate an adjusted font size to hit the target height
             adjusted_font_size = int(init_font_size * target_char_height / measured_height)
-            # Reload the font only if the adjustment is different
             if adjusted_font_size != init_font_size:
                 try:
                     font = ImageFont.truetype(font_path, adjusted_font_size)
@@ -177,7 +183,7 @@ def overlay_text_on_postcard(image_path, text, target_language):
                     font = ImageFont.load_default()
 
     # Compute an approximate maximum number of characters per line based on the average character width.
-    avg_char_width = font.getsize("A")[0] if hasattr(font, "getsize") else init_font_size * 0.6
+    avg_char_width, _ = measure_text(font, "A")
     max_chars = max(1, int(max_text_width // avg_char_width))
 
     # Wrap text so that each line does not exceed the designated area.
@@ -188,8 +194,7 @@ def overlay_text_on_postcard(image_path, text, target_language):
         )
 
     # Draw each line on the overlay using a random dark color (RGB values between 0 and 100)
-    # Also use a line height that gives some extra spacing between lines.
-    line_height = font.getsize("A")[1] + 6  # based on the adjusted font size
+    line_height = measure_text(font, "A")[1] + 6  # based on the adjusted font size with extra spacing
     y_offset = margin_top
     r, g, b = [random.randint(0, 100) for _ in range(3)]
     color = (r, g, b, 255)
@@ -347,13 +352,13 @@ def main():
     # Option to reset or start a new conversation
     if st.button("🔄 Reset Conversation"):
         init_conversation()
-        st.rerun()
+        st.experimental_rerun()
 
     # Initialize conversation if not already started
     if "conversation_history" not in st.session_state or st.session_state.get("conversation_history") is None:
         if st.button("▶️ Start New Conversation"):
             init_conversation()
-            st.rerun()
+            st.experimental_rerun()
 
     # Display conversation history (excluding the system message)
     if "conversation_history" in st.session_state and st.session_state["conversation_history"]:
@@ -377,7 +382,7 @@ def main():
                 st.session_state["conversation_history"].append({"role": "user", "content": user_message})
                 with st.spinner("Waiting for friend response..."):
                     simulate_friend_response()
-                st.rerun()
+                st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
