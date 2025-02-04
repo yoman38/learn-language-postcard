@@ -1,0 +1,206 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+
+
+/* Base Reset */
+body, [data-testid="stAppViewContainer"] {
+    margin: 0;
+    padding: 0;
+    background: #f8f6f3;  /* Light Beige/Cream */
+    font-family: 'Inter', sans-serif;
+    color: #3f3f3f;  /* Darker Gray for Text */
+}
+
+/* Header Styling */
+.header-container {
+    background: #FFFFFF;
+    border-bottom: 1px solid #e5e5e5;  /* Soft Gray Border */
+    padding: 1.5rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #3b5998;  /* Deep Blue for Branding */
+}
+
+/* Sidebar Styling */
+.stSidebar {
+    background-color: #fdfdfd;
+    color: #3f3f3f;
+    border-right: 1px solid #e5e5e5;
+}
+
+.stSidebar .stHeader {
+    color: #3b5998;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.stSidebar p {
+    color: #6b7280;
+}
+
+/* Cards and Containers */
+.feature-card {
+    background: #FFFFFF;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    color: #3f3f3f;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Primary Buttons (CTA) */
+.stButton>button,
+div.stForm button {
+    background-color: #10b981;  /* Green for Call to Action */
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.stButton>button:hover,
+div.stForm button:hover {
+    background-color: #059669;
+    color: #facc15;  /* Yellow on Hover */
+}
+
+.stButton>button:active {
+    background-color: #047857;
+}
+
+/* Banners and Notifications */
+.instruction-banner {
+    background: #ede9fe;  /* Soft Purple/Blue */
+    border-radius: 8px;
+    padding: 1rem 2rem;
+    margin: 2rem 0;
+    font-size: 1.1rem;
+    color: #3f3f3f;
+}
+
+/* Success and Error Messages */
+div[data-baseweb="notification"] {
+    border: 1px solid #22c55e;
+    background-color: #ecfdf5;
+    color: #065f46;
+    padding: 12px;
+    border-radius: 5px;
+}
+
+div[data-baseweb="notification"][data-test="stNotificationError"] {
+    border: 1px solid #f87171;  /* Red */
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Progress Bar */
+div[role="progressbar"] {
+    background-color: #e5e7eb;
+    border-radius: 10px;
+}
+
+div[role="progressbar"] > div {
+    background-color: #10b981;
+}
+
+/* Highlights and Ratings */
+.rating-highlight {
+    color: #f59e0b;  /* Orange/Yellow for Ratings */
+    font-weight: 600;
+}
+
+/* Radio Buttons */
+.stRadio > div {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 5px;
+    color: #1f2937;
+}
+
+.stRadio > div:hover {
+    background-color: #fef3c7;
+    cursor: pointer;
+}
+
+/* Text Input */
+.stTextInput>div>div>input {
+    background-color: #FFFFFF;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.stTextInput>div>div>input:focus {
+    outline: none;
+    border: 2px solid #3b82f6;
+}
+
+/* Footer */
+.footer {
+    margin-top: 4rem;
+    padding: 1.5rem 3rem;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    color: #6b7280;
+    font-size: 1rem;
+}
+
+/* Titles and Subheaders */
+h2, .stSubheader {
+    font-size: 1.75rem;
+    color: #1f2937;
+    margin-bottom: 10px;
+}
+
+/* Chat Messages */
+.user-message {
+    background-color: #fef9c3;
+    color: #1f2937;
+    padding: 10px 15px;
+    border-radius: 10px;
+    margin: 5px 0;
+    max-width: 70%;
+}
+
+.assistant-message {
+    background-color: #e5e7eb;
+    color: #374151;
+    padding: 10px 15px;
+    border-radius: 10px;
+    margin: 5px 0;
+    max-width: 70%;
+}
+
+/* Small Icons/Indicators */
+.icon-indicator {
+    color: #f59e0b;
+}
+
+/* Notification Badges */
+.notification-badge {
+    background-color: #f87171;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+}
