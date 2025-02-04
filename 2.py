@@ -152,17 +152,19 @@ def overlay_text_on_postcard(image_path, text, target_language):
 
     # Compute an approximate maximum number of characters per line based on average character width
     avg_char_width = font.getsize("A")[0] if hasattr(font, "getsize") else font_size * 0.6
-    max_chars = max(1, max_text_width // avg_char_width)
+    max_chars = max(1, int(max_text_width // avg_char_width))
 
-    # Wrap text so that each line does not exceed the designated area
+    # Wrap text so that each line does not exceed the designated area.
+    # Note: We explicitly disable breaking on hyphens to avoid errors.
     wrapped_lines = []
     for paragraph in text.split("\n"):
-        wrapped_lines.extend(textwrap.wrap(paragraph, width=max_chars))
+        wrapped_lines.extend(
+            textwrap.wrap(paragraph, width=max_chars, break_long_words=True, break_on_hyphens=False)
+        )
 
-    # Draw each line on the overlay
+    # Draw each line on the overlay using a random dark color (RGB values between 0 and 100) for clarity
     line_height = font_size + 6  # extra spacing between lines
     y_offset = margin_top
-    # Use a random dark color (RGB values between 0 and 100) with full opacity for readability
     r, g, b = [random.randint(0, 100) for _ in range(3)]
     color = (r, g, b, 255)
 
