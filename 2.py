@@ -27,11 +27,11 @@ client = openai.Client(api_key=API_KEY)
 POSTCARD_FOLDER = "./Postcards"
 FONTS_FOLDER = "./Fonts"
 
-# Gather all .ttf font paths in FONTS_FOLDER
+# Gather all available random fonts in FONTS_FOLDER (for Latin alphabets)
 FONT_FILES = [
     os.path.join(FONTS_FOLDER, f)
     for f in os.listdir(FONTS_FOLDER)
-    if f.lower().endswith(".ttf")
+    if f.lower().endswith(".ttf") and f.lower() not in ["cyrillic.ttf", "korean.ttf", "japanese.ttf", "chinese.ttf"]
 ]
 
 # -------------------------
@@ -39,13 +39,12 @@ FONT_FILES = [
 # -------------------------
 def generate_friend_letter(friend_name, user_name, target_language):
     """
-    Generate a short letter in target_language from friend_name to user_name,
-    signing off with friend_name.
+    Generate a short letter (≈80 words) in target_language from friend_name to user_name.
     """
     prompt = (
-        f"Write a short (about 80 words) letter to your friend about a random activity in vacation. "
-        f"Ask a question about something to your friend. Speak in {target_language} from {friend_name}'s point of view "
-        f"to {user_name}. Sign the letter as {friend_name}."
+        f"Write a short (about 80 words) letter to your friend about a random activity on vacation. "
+        f"Ask a question to your friend. Write in {target_language} from {friend_name}'s point of view to {user_name} "
+        f"and sign the letter as {friend_name}."
     )
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -76,11 +75,11 @@ def translate_to_language(text, target_language):
 
 def correct_text_in_target_language(user_text, target_language, mother_tongue):
     """
-    Ask ChatGPT to correct and explain mistakes in user_text which is written in target_language.
+    Ask ChatGPT to correct and explain mistakes in user_text written in target_language.
     """
     prompt = (
-        f"You are a language teacher. Correct mistakes using {target_language} and then explain any mistakes in {mother_tongue}. "
-        f"Provide the corrected text in {target_language} first, then a bullet list of corrections with explanations in {mother_tongue}.\n\n"
+        f"You are a language teacher. Correct the mistakes using {target_language} and then explain the mistakes in {mother_tongue}. "
+        f"First provide the corrected text in {target_language}, then a bullet list with explanations in {mother_tongue}.\n\n"
         f"Text written in {target_language}:\n\n{user_text}"
     )
     response = client.chat.completions.create(
@@ -93,6 +92,13 @@ def correct_text_in_target_language(user_text, target_language, mother_tongue):
         temperature=0.7
     )
     return response.choices[0].message.content.strip()
+
+# -------------------------
+# 2a. Caching for Translations
+# -------------------------
+@st.cache_data(show_spinner=False)
+def cached_translation(text, target_language):
+    return translate_to_language(text, target_language)
 
 # --------------------------------
 # 3. IMAGE & TEXT RENDERING LOGIC
@@ -108,10 +114,11 @@ def pick_random_postcard():
     ]
     return random.choice(image_files) if image_files else None
 
-def overlay_text_on_postcard(image_path, text):
+def overlay_text_on_postcard(image_path, text, target_language):
     """
-    Overlays the provided text on the postcard image. The text is rendered with a larger font,
-    restricted to the left side of the postcard, and drawn in a random dark color for clarity.
+    Overlays the provided text on the postcard image.
+    Ensures the text remains within the designated letter area (left side ~42% of the width).
+    Uses a language-specific font if applicable.
     """
     postcard = Image.open(image_path).convert("RGBA")
     width, height = postcard.size
@@ -119,28 +126,46 @@ def overlay_text_on_postcard(image_path, text):
     text_overlay = Image.new("RGBA", postcard.size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(text_overlay)
 
-    # Pick a random font from the folder and set a bigger font size (5% of the image height)
-    font_path = random.choice(FONT_FILES) if FONT_FILES else None
-    font_size = int(height * 0.05)
-    font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
-
-    # Generate a random dark color (RGB values between 0 and 100) with full opacity
-    r, g, b = [random.randint(0, 100) for _ in range(3)]
-    color = (r, g, b, 255)
-
-    # Define margins & max text width for the left side of the postcard
+    # Define letter area (left side)
     margin_left = int(width * 0.03)
     margin_top = int(height * 0.18)
+    max_text_width = int(width * 0.42)
 
-    # Word-wrap: break text into lines so it doesn't exceed ~40-42% of the width
+    # Determine font path based on target language (use specific fonts for non-Latin alphabets)
+    tl_lower = target_language.lower()
+    if tl_lower in ["russian", "ukrainian", "bulgarian", "serbian", "macedonian"]:
+        font_path = os.path.join(FONTS_FOLDER, "cyrillic.ttf")
+    elif tl_lower == "korean":
+        font_path = os.path.join(FONTS_FOLDER, "korean.ttf")
+    elif tl_lower == "japanese":
+        font_path = os.path.join(FONTS_FOLDER, "japanese.ttf")
+    elif tl_lower == "chinese":
+        font_path = os.path.join(FONTS_FOLDER, "chinese.ttf")
+    else:
+        font_path = random.choice(FONT_FILES) if FONT_FILES else None
+
+    font_size = int(height * 0.05)  # 5% of image height
+    try:
+        font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
+    except Exception:
+        font = ImageFont.load_default()
+
+    # Compute an approximate maximum number of characters per line based on average character width
+    avg_char_width = font.getsize("A")[0] if hasattr(font, "getsize") else font_size * 0.6
+    max_chars = max(1, max_text_width // avg_char_width)
+
+    # Wrap text so that each line does not exceed the designated area
     wrapped_lines = []
     for paragraph in text.split("\n"):
-        for line in textwrap.wrap(paragraph, width=40):
-            wrapped_lines.append(line)
+        wrapped_lines.extend(textwrap.wrap(paragraph, width=max_chars))
 
     # Draw each line on the overlay
     line_height = font_size + 6  # extra spacing between lines
     y_offset = margin_top
+    # Use a random dark color (RGB values between 0 and 100) with full opacity for readability
+    r, g, b = [random.randint(0, 100) for _ in range(3)]
+    color = (r, g, b, 255)
+
     for line in wrapped_lines:
         draw.text((margin_left, y_offset), line, font=font, fill=color)
         y_offset += line_height
@@ -250,7 +275,7 @@ def main():
                 st.session_state["letter_text"] = letter_text
 
                 # Create the final postcard with the overlaid letter text
-                final_postcard = overlay_text_on_postcard(st.session_state["postcard_path"], letter_text)
+                final_postcard = overlay_text_on_postcard(st.session_state["postcard_path"], letter_text, target_language)
                 st.session_state["final_postcard"] = final_postcard
 
                 # Also store the translation (from target language to mother tongue)
@@ -291,7 +316,7 @@ def main():
     st.write("Engage in a natural, back-and-forth chat with your AI friend to practice your target language. "
              "Your conversation history is maintained to provide context across multiple exchanges.")
 
-    # Button to reset or start a new conversation
+    # Option to reset or start a new conversation
     if st.button("🔄 Reset Conversation"):
         init_conversation()
         st.rerun()
@@ -305,13 +330,18 @@ def main():
     # Display conversation history (excluding the system message)
     if "conversation_history" in st.session_state and st.session_state["conversation_history"]:
         st.subheader("Conversation History")
-        for msg in st.session_state["conversation_history"]:
+        for i, msg in enumerate(st.session_state["conversation_history"]):
             if msg["role"] == "system":
-                continue  # do not display the system message
+                continue  # Skip system messages
             if msg["role"] == "assistant":
-                st.markdown(f"**{friend_name}**: {msg['content']}")
+                st.markdown(f"**{friend_name}:** {msg['content']}")
             elif msg["role"] == "user":
-                st.markdown(f"**{user_name}**: {msg['content']}")
+                st.markdown(f"**{user_name}:** {msg['content']}")
+
+            # Add an expander for translation of this message into the mother tongue
+            with st.expander("Show Translation", expanded=False, key=f"expander_{i}"):
+                translation = cached_translation(msg["content"], mother_tongue)
+                st.markdown(translation)
 
         # Form for user to send a new message
         with st.form("conversation_form", clear_on_submit=True):
