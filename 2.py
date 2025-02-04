@@ -345,9 +345,8 @@ def main():
                 st.markdown(f"**{friend_name}:** {msg['content']}")
             elif msg["role"] == "user":
                 st.markdown(f"**{user_name}:** {msg['content']}")
-
-            # Add an expander for translation of this message into the mother tongue
-            with st.expander("Show Translation", expanded=False, key=f"expander_{i}"):
+            # Use an expander for the translation; no expanded keyword is passed
+            with st.expander("Show Translation", key=f"expander_{i}"):
                 translation = cached_translation(msg["content"], mother_tongue)
                 st.markdown(translation)
 
