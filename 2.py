@@ -117,10 +117,15 @@ def pick_random_postcard():
 def overlay_text_on_postcard(image_path, text, target_language):
     """
     Overlays the provided text on the postcard image.
-    Ensures the text remains within the designated letter area (left side ~42% of the width).
-    Uses a language-specific font if applicable.
+    - The postcard is first resized to a consistent size (600×400 pixels).
+    - The text is always rendered in size 14.
+    - The text area extends up to 60% of the postcard's width.
+    - Uses a language-specific font if applicable.
     """
+    # Open and resize the postcard image to a constant size (600x400)
     postcard = Image.open(image_path).convert("RGBA")
+    target_size = (600, 400)
+    postcard = postcard.resize(target_size)
     width, height = postcard.size
 
     text_overlay = Image.new("RGBA", postcard.size, (255, 255, 255, 0))
@@ -129,7 +134,7 @@ def overlay_text_on_postcard(image_path, text, target_language):
     # Define letter area (left side)
     margin_left = int(width * 0.03)
     margin_top = int(height * 0.18)
-    max_text_width = int(width * 0.42)
+    max_text_width = int(width * 0.60)  # up to 60% of the postcard horizontally
 
     # Determine font path based on target language (use specific fonts for non-Latin alphabets)
     tl_lower = target_language.lower()
@@ -144,7 +149,8 @@ def overlay_text_on_postcard(image_path, text, target_language):
     else:
         font_path = random.choice(FONT_FILES) if FONT_FILES else None
 
-    font_size = int(height * 0.05)  # 5% of image height
+    # Always use font size 14
+    font_size = 14
     try:
         font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
     except Exception:
@@ -155,14 +161,14 @@ def overlay_text_on_postcard(image_path, text, target_language):
     max_chars = max(1, int(max_text_width // avg_char_width))
 
     # Wrap text so that each line does not exceed the designated area.
-    # Note: We explicitly disable breaking on hyphens to avoid errors.
+    # Explicitly disable breaking on hyphens to avoid errors.
     wrapped_lines = []
     for paragraph in text.split("\n"):
         wrapped_lines.extend(
             textwrap.wrap(paragraph, width=max_chars, break_long_words=True, break_on_hyphens=False)
         )
 
-    # Draw each line on the overlay using a random dark color (RGB values between 0 and 100) for clarity
+    # Draw each line on the overlay using a random dark color (RGB values between 0 and 100)
     line_height = font_size + 6  # extra spacing between lines
     y_offset = margin_top
     r, g, b = [random.randint(0, 100) for _ in range(3)]
