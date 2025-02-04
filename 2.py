@@ -118,9 +118,9 @@ def overlay_text_on_postcard(image_path, text, target_language):
     """
     Overlays the provided text on the postcard image.
     - The postcard is first resized to a consistent size (600×400 pixels).
-    - The text is always rendered in size 14.
     - The text area extends up to 60% of the postcard's width.
-    - Uses a language-specific font if applicable.
+    - A language-specific font is chosen if applicable.
+    - The font size is dynamically adjusted so that text appears at a consistent visual size.
     """
     # Open and resize the postcard image to a constant size (600x400)
     postcard = Image.open(image_path).convert("RGBA")
@@ -149,19 +149,38 @@ def overlay_text_on_postcard(image_path, text, target_language):
     else:
         font_path = random.choice(FONT_FILES) if FONT_FILES else None
 
-    # Always use font size 14
-    font_size = 14
+    # Define a baseline target for the character height (in pixels)
+    target_char_height = 14
+
+    # Start with an initial font size
+    init_font_size = 14
     try:
-        font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
+        # Attempt to load the font at the initial size
+        font = ImageFont.truetype(font_path, init_font_size) if font_path else ImageFont.load_default()
     except Exception:
         font = ImageFont.load_default()
 
-    # Compute an approximate maximum number of characters per line based on average character width
-    avg_char_width = font.getsize("A")[0] if hasattr(font, "getsize") else font_size * 0.6
+    # If using a TrueType font, adjust the font size so that the rendered character "A" is close to target_char_height.
+    if font_path is not None:
+        # Measure the height of a reference character
+        ref_char = "A"
+        measured_width, measured_height = font.getsize(ref_char)
+        # Avoid division by zero
+        if measured_height > 0:
+            # Calculate an adjusted font size to hit the target height
+            adjusted_font_size = int(init_font_size * target_char_height / measured_height)
+            # Reload the font only if the adjustment is different
+            if adjusted_font_size != init_font_size:
+                try:
+                    font = ImageFont.truetype(font_path, adjusted_font_size)
+                except Exception:
+                    font = ImageFont.load_default()
+
+    # Compute an approximate maximum number of characters per line based on the average character width.
+    avg_char_width = font.getsize("A")[0] if hasattr(font, "getsize") else init_font_size * 0.6
     max_chars = max(1, int(max_text_width // avg_char_width))
 
     # Wrap text so that each line does not exceed the designated area.
-    # Explicitly disable breaking on hyphens to avoid errors.
     wrapped_lines = []
     for paragraph in text.split("\n"):
         wrapped_lines.extend(
@@ -169,7 +188,8 @@ def overlay_text_on_postcard(image_path, text, target_language):
         )
 
     # Draw each line on the overlay using a random dark color (RGB values between 0 and 100)
-    line_height = font_size + 6  # extra spacing between lines
+    # Also use a line height that gives some extra spacing between lines.
+    line_height = font.getsize("A")[1] + 6  # based on the adjusted font size
     y_offset = margin_top
     r, g, b = [random.randint(0, 100) for _ in range(3)]
     color = (r, g, b, 255)
@@ -345,8 +365,7 @@ def main():
                 st.markdown(f"**{friend_name}:** {msg['content']}")
             elif msg["role"] == "user":
                 st.markdown(f"**{user_name}:** {msg['content']}")
-            # Use an expander for the translation; no expanded keyword is passed
-            with st.expander("Show Translation", key=f"expander_{i}"):
+            with st.expander("Show Translation"):
                 translation = cached_translation(msg["content"], mother_tongue)
                 st.markdown(translation)
 
